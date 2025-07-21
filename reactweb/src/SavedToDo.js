@@ -5,7 +5,14 @@ const normalizeStatus = (status) => {
   if (status === "c") return "Completed";
   if (status === "i") return "In Progress";
   if (status === "n") return "Not Started";
-  return status; // assume already full form
+  return status;
+};
+
+const reverseNormalizeStatus = (status) => {
+  if (status === "Completed") return "c";
+  if (status === "In Progress") return "i";
+  if (status === "Not Started") return "n";
+  return status;
 };
 
 const SavedToDo = () => {
@@ -16,17 +23,25 @@ const SavedToDo = () => {
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const navigate = useNavigate();
 
-  const fetchTodos = async () => {
+  const fetchTodos = async (preserveId = null) => {
     try {
       const res = await fetch("http://localhost:2001/todo_list");
       const data = await res.json();
-      const normalizedData = data.map(todo => ({
+      const normalizedData = data.map((todo) => ({
         ...todo,
         status: normalizeStatus(todo.status),
       }));
-      setTodos(normalizedData.reverse());
+
+      const reversed = normalizedData.reverse();
+      setTodos(reversed);
+
+      // Keep user on the same task if ID is preserved
+      if (preserveId) {
+        const newIndex = reversed.findIndex((todo) => todo.id === preserveId);
+        if (newIndex !== -1) setCurrentIndex(newIndex);
+      }
+
       setError("");
-      setCurrentIndex(0);
     } catch (err) {
       setError("Failed to load todos");
     } finally {
@@ -46,18 +61,18 @@ const SavedToDo = () => {
     try {
       await fetch(`http://localhost:2001/todo_list/${id}`, { method: "DELETE" });
       await fetchTodos();
-      setCurrentIndex(prev => (prev > 0 ? prev - 1 : 0));
+      setCurrentIndex((prev) => (prev > 0 ? prev - 1 : 0));
     } catch (err) {
       alert("Failed to delete todo");
     }
   };
 
   const handlePrev = () => {
-    setCurrentIndex(prev => (prev > 0 ? prev - 1 : prev));
+    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : prev));
   };
 
   const handleNext = () => {
-    setCurrentIndex(prev => (prev < todos.length - 1 ? prev + 1 : prev));
+    setCurrentIndex((prev) => (prev < todos.length - 1 ? prev + 1 : prev));
   };
 
   const handleStatusChange = async (e) => {
@@ -71,7 +86,7 @@ const SavedToDo = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: updatedStatus }),
       });
-      await fetchTodos();
+      await fetchTodos(currentTodo.id);
       alert("✅ Status updated successfully!");
     } catch (err) {
       alert("❌ Failed to update status");
@@ -101,7 +116,7 @@ const SavedToDo = () => {
           <div style={styles.flexWrapper}>
             {/* Main Task Info */}
             <div style={styles.card}>
-              {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"].map(day =>
+              {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"].map((day) =>
                 currentTodo[day.toLowerCase()] ? (
                   <p key={day}>
                     <strong>{day}:</strong> {currentTodo[day.toLowerCase()]}
@@ -142,14 +157,14 @@ const SavedToDo = () => {
                 {currentTodo.status || "Not Started"}
               </p>
               <select
-                value={currentTodo.status || "Not Started"}
+                value={reverseNormalizeStatus(currentTodo.status) || "n"}
                 onChange={handleStatusChange}
                 disabled={updatingStatus}
                 style={styles.select}
               >
-                <option value="Not Started">Not Started</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Completed">Completed</option>
+                <option value="n">Not Started</option>
+                <option value="i">In Progress</option>
+                <option value="c">Completed</option>
               </select>
             </div>
           </div>
@@ -174,6 +189,7 @@ const SavedToDo = () => {
 
 export default SavedToDo;
 
+// Keep your existing styles object below
 const styles = {
   container: {
     maxWidth: "900px",
