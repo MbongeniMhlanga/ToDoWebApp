@@ -2,9 +2,9 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 const normalizeStatus = (status) => {
-  if (status === "C") return "Completed";
-  if (status === "I") return "In Progress";
-  if (status === "N") return "Not Started";
+  if (status === "c") return "Completed";
+  if (status === "i") return "In Progress";
+  if (status === "n") return "Not Started";
   return status; // assume already full form
 };
 
